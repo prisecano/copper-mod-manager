@@ -1,0 +1,14 @@
+[package]
+name = "copper-mod-manager"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+base16ct = "1.0.0"
+rayon = "1.11.0"
+reqwest = { version = "0.13.1", features = ["json"] }
+serde = "1.0.228"
+serde_json = "1.0.149"
+sha1 = "0.10.6"
+tokio = { version = "1.49.0", features = ["full"] }
+walkdir = "2.5.0"
