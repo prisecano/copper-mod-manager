@@ -1,21 +1,47 @@
-use std::env;
-
+use clap::{Parser, Subcommand};
 mod modrinth_api;
 mod service;
 
+/// Tool to manage minecraft mods for Fabric + Modrinth
+#[derive(Debug, Parser)]
+#[command(name = "cmm")]
+#[command(about = "Tool to manage minecraft mods for Fabric + Modrinth", long_about = None)]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Debug, Subcommand)]
+enum Commands {
+    /// Check if mods are available for a given minecraft version
+    #[command(arg_required_else_help = true)]
+    Check {
+        /// The minecraft version to check mods
+        minecraft_version: String,
+    },
+    /// Update mods to the latest version for a given minecraft version
+    #[command(arg_required_else_help = true)]
+    Update {
+        /// The minecraft version to update mods
+        minecraft_version: String,
+    },
+}
+
+#[cfg(windows)]
+fn enable_ansi_support() {
+    colored::control::set_virtual_terminal(true).unwrap();
+}
+
 #[tokio::main]
 async fn main() {
-    let args: Vec<String> = env::args().collect();
+    enable_ansi_support();
 
-    let game_versions = [&args[1]];
-    let loaders = [&args[2]];
+    let args = Cli::parse();
 
-    println!("Current minecraft version is {}", game_versions[0]);
-    println!("Current loader is {}", loaders[0]);
-
-    let mods_hashes = service::hash_mc_mods();
-
-    modrinth_api::latest_version_of_a_project(&mods_hashes[3], &loaders, &game_versions)
-        .await
-        .unwrap_or_default();
+    match args.command {
+        Commands::Check { minecraft_version } => service::check::check(&minecraft_version).await,
+        Commands::Update { minecraft_version } => {
+            println!("Update mods for Minecraft version {minecraft_version}");
+        }
+    }
 }

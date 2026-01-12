@@ -1,14 +1,15 @@
-use sha1::{Digest, Sha1};
-// use std::collections::HashMap;
+use colored::Colorize;
 use rayon::prelude::*;
+use serde_json::Value;
+use sha1::{Digest, Sha1};
 use std::fs::File;
 use std::io::{BufReader, Read};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use walkdir::{DirEntry, WalkDir};
+pub mod check;
 
-pub fn hash_mc_mods() -> Vec<String> {
-    let mut mc_mods: Vec<_> = Vec::new();
-    // let mut modpack = HashMap::new();
+fn hash_mc_mods() -> Vec<(String, String)> {
+    let mut mc_mods = Vec::new();
 
     for entry in WalkDir::new("mods")
         .into_iter()
@@ -17,24 +18,20 @@ pub fn hash_mc_mods() -> Vec<String> {
     {
         if entry.file_type().is_file() {
             mc_mods.push(entry.path().to_path_buf());
-            // let hash = hash_file_sha1(path).unwrap();
-            // println!("{} -> {}", path.file_name().unwrap().display(), hash);
-            // mods_hashes.push(hash);
         }
     }
-    println!();
 
     hash_mods(mc_mods)
 }
 
-fn hash_mods(mc_mods: Vec<std::path::PathBuf>) -> Vec<String> {
+fn hash_mods(mc_mods: Vec<PathBuf>) -> Vec<(String, String)> {
     mc_mods
         .par_iter()
         .map(|path| hash_file_sha1(path.as_path()))
         .collect()
 }
 
-pub fn should_include(entry: &DirEntry) -> bool {
+fn should_include(entry: &DirEntry) -> bool {
     if entry.file_type().is_dir() {
         return true;
     }
@@ -46,7 +43,7 @@ pub fn should_include(entry: &DirEntry) -> bool {
     }
 }
 
-pub fn hash_file_sha1(path: &Path) -> String {
+fn hash_file_sha1(path: &Path) -> (String, String) {
     let file = File::open(path).unwrap();
     let mut reader = BufReader::new(file);
 
@@ -70,7 +67,45 @@ pub fn hash_file_sha1(path: &Path) -> String {
         .unwrap_or_default()
         .to_owned();
 
-    println!("{} -> {}", path.file_name().unwrap().display(), hash);
+    let mod_file_name = path.file_name().unwrap().display().to_string();
 
-    hash
+    println!("{} -> {}", mod_file_name, hash.yellow());
+
+    (mod_file_name, hash)
+}
+
+fn check_mods_compatible(
+    mc_modpack: Vec<(String, String)>,
+    minecraft_version: &String,
+    body_text: String,
+) {
+    let body_json: Value = serde_json::from_str(body_text.as_str()).unwrap_or_default();
+
+    println!(
+        "\r\n{} {}",
+        "Availability check for Minecraft version".bright_cyan(),
+        minecraft_version.bright_blue()
+    );
+
+    if let Some(projects) = body_json.as_object() {
+        let compatible_hashes: Vec<&String> = projects.keys().collect();
+
+        mc_modpack.iter().for_each(|mc_mod| {
+            let is_available = if compatible_hashes.contains(&&mc_mod.1) {
+                "YES".green()
+            } else {
+                "NO".red()
+            };
+            println!("{} = {} ? {}", mc_mod.1.yellow(), mc_mod.0, is_available)
+        });
+
+        // for (hash, project) in projects {
+        //     println!("hash: {}", hash);
+
+        //     let project_id = project
+        //         .get("project_id")
+        //         .and_then(Value::as_str)
+        //         .unwrap_or("<unknown>");
+        // }
+    }
 }

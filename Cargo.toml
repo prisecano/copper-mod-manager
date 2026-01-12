@@ -1,10 +1,12 @@
 [package]
-name = "copper-mod-manager"
+name = "cmm"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
 base16ct = "1.0.0"
+clap = { version = "4.5.54", features = ["derive"] }
+colored = "3.0.0"
 rayon = "1.11.0"
 reqwest = { version = "0.13.1", features = ["json"] }
 serde = "1.0.228"
