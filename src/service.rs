@@ -1,3 +1,4 @@
+use super::modrinth_api;
 use colored::Colorize;
 use rayon::prelude::*;
 use serde_json::Value;
@@ -6,11 +7,61 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::{Path, PathBuf};
 use walkdir::{DirEntry, WalkDir};
-pub mod check;
 
-fn hash_mc_mods() -> Vec<(String, String)> {
+struct MinecraftMod {
+    file_name: String,
+    file_hash: String,
+}
+
+impl MinecraftMod {
+    fn new(file_name: String, file_hash: String) -> Self {
+        Self {
+            file_name,
+            file_hash,
+        }
+    }
+    // TODO move hash file fn in here, par from outside and call this method
+}
+
+pub async fn check(minecraft_version: &String) {
+    println!(
+        "\r\n{} {}",
+        "Checking if mods are supported for minecraft version".bright_cyan(),
+        minecraft_version.bright_blue()
+    );
+
+    let game_versions = &vec![minecraft_version];
+    let loader = String::from("fabric");
+    let loaders = &vec![&loader];
+
+    println!(
+        "\r\n{}",
+        "Obtaining hashes for Modrinth lookup:".bright_cyan()
+    );
+    let modpack: Vec<MinecraftMod> = hash_mc_mods();
+    let mods_hashes: &Vec<&String> = &modpack.iter().map(|mc_mod| &mc_mod.file_hash).collect();
+
+    println!("\r\n{}", "Searching mods on Modrinth...".bright_cyan());
+
+    let body_text =
+        modrinth_api::latest_version_of_multiple_project(mods_hashes, loaders, game_versions)
+            .await
+            .unwrap_or_default();
+
+    println!("\r\n{}", "Done!".bright_green());
+
+    check_mods_support(modpack, minecraft_version, &body_text);
+}
+
+fn hash_mc_mods() -> Vec<MinecraftMod> {
     let mut mc_mods = Vec::new();
 
+    get_mod_file_paths(&mut mc_mods);
+
+    hash_mods(mc_mods)
+}
+
+fn get_mod_file_paths(mc_mods: &mut Vec<PathBuf>) {
     for entry in WalkDir::new("mods")
         .into_iter()
         .filter_entry(|e| should_include(e))
@@ -20,11 +71,9 @@ fn hash_mc_mods() -> Vec<(String, String)> {
             mc_mods.push(entry.path().to_path_buf());
         }
     }
-
-    hash_mods(mc_mods)
 }
 
-fn hash_mods(mc_mods: Vec<PathBuf>) -> Vec<(String, String)> {
+fn hash_mods(mc_mods: Vec<PathBuf>) -> Vec<MinecraftMod> {
     mc_mods
         .par_iter()
         .map(|path| hash_file_sha1(path.as_path()))
@@ -43,7 +92,7 @@ fn should_include(entry: &DirEntry) -> bool {
     }
 }
 
-fn hash_file_sha1(path: &Path) -> (String, String) {
+fn hash_file_sha1(path: &Path) -> MinecraftMod {
     let file = File::open(path).unwrap();
     let mut reader = BufReader::new(file);
 
@@ -71,33 +120,57 @@ fn hash_file_sha1(path: &Path) -> (String, String) {
 
     println!("{} -> {}", mod_file_name, hash.yellow());
 
-    (mod_file_name, hash)
+    MinecraftMod::new(mod_file_name, hash)
+    // (mod_file_name, hash)
 }
 
-fn check_mods_compatible(
-    mc_modpack: Vec<(String, String)>,
-    minecraft_version: &String,
-    body_text: String,
-) {
-    let body_json: Value = serde_json::from_str(body_text.as_str()).unwrap_or_default();
+fn check_mods_support(mc_modpack: Vec<MinecraftMod>, minecraft_version: &String, body_text: &str) {
+    let body_json: Value = serde_json::from_str(body_text).unwrap_or_default();
 
     println!(
         "\r\n{} {}",
-        "Availability check for Minecraft version".bright_cyan(),
+        "Mod(s) support check for Minecraft version".bright_cyan(),
         minecraft_version.bright_blue()
     );
 
     if let Some(projects) = body_json.as_object() {
-        let compatible_hashes: Vec<&String> = projects.keys().collect();
+        let supported_hashes: Vec<&String> = projects.keys().collect();
+
+        let yes = "O".green();
+        let no = "X".red();
 
         mc_modpack.iter().for_each(|mc_mod| {
-            let is_available = if compatible_hashes.contains(&&mc_mod.1) {
-                "YES".green()
+            let is_available = if supported_hashes.contains(&&mc_mod.file_hash) {
+                &yes
             } else {
-                "NO".red()
+                &no
             };
-            println!("{} = {} ? {}", mc_mod.1.yellow(), mc_mod.0, is_available)
+            println!(
+                "{} -> {} {}",
+                mc_mod.file_hash.yellow(),
+                is_available,
+                mc_mod.file_name
+            )
         });
+
+        let total_local_mods = mc_modpack.len();
+        let total_supported_mods = projects.len();
+
+        if total_local_mods != total_supported_mods {
+            println!(
+                "\r\n{} {}/{} {}",
+                "Only".bright_cyan(),
+                total_supported_mods.to_string().bright_blue(),
+                total_local_mods.to_string().bright_blue(),
+                "supported...".bright_cyan()
+            )
+        } else {
+            println!(
+                "\r\n{} {}",
+                "All mods are supported for".bright_cyan(),
+                minecraft_version.bright_blue()
+            )
+        }
 
         // for (hash, project) in projects {
         //     println!("hash: {}", hash);

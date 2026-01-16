@@ -13,7 +13,7 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Commands {
-    /// Check if mods are available for a given minecraft version
+    /// Check if mods are supported for a given minecraft version
     #[command(arg_required_else_help = true)]
     Check {
         /// The minecraft version to check mods
@@ -39,7 +39,7 @@ async fn main() {
     let args = Cli::parse();
 
     match args.command {
-        Commands::Check { minecraft_version } => service::check::check(&minecraft_version).await,
+        Commands::Check { minecraft_version } => service::check(&minecraft_version).await,
         Commands::Update { minecraft_version } => {
             println!("Update mods for Minecraft version {minecraft_version}");
         }

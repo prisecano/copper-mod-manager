@@ -4,7 +4,7 @@
 [
   {
     "label": "Run 1.21.10",
-    "command": "cargo run -- 1.21.10 fabric",
+    "command": "cargo run -- check 1.21.10",
     //"args": [],
     // Env overrides for the command, will be appended to the terminal's environment from the settings.
     //"env": { "foo": "bar" },
@@ -53,7 +53,7 @@
   },
   {
     "label": "Run 1.21.11",
-    "command": "cargo run -- 1.21.11 fabric",
+    "command": "cargo run -- check 1.21.11",
     //"args": [],
     // Env overrides for the command, will be appended to the terminal's environment from the settings.
     //"env": { "foo": "bar" },
@@ -102,7 +102,7 @@
   },
   {
     "label": "Run 1.16.5",
-    "command": "cargo run -- 1.16.5 fabric",
+    "command": "cargo run -- check 1.16.5",
     //"args": [],
     // Env overrides for the command, will be appended to the terminal's environment from the settings.
     //"env": { "foo": "bar" },
