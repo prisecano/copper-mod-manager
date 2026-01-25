@@ -11,13 +11,17 @@ pub(crate) async fn support(mc_version: &str) {
     let mut mc_mods: MinecraftMods = Vec::new();
     println!(
         "\r\n{} {}",
-        "Checking if mods are supported for minecraft version".bright_cyan(),
+        "Checking if current mods has versions on Modrinth that support".bright_cyan(),
         mc_version.bright_blue()
     );
 
-    let body_text = utils::get_latest_version_of_multiple_project(mc_version, &mut mc_mods).await;
+    let body = utils::get_latest_version_of_multiple_project(mc_version, &mut mc_mods).await;
 
-    utils::check_support_mc_mods(mc_mods, mc_version, &body_text);
+    let is_supported: bool = utils::check_support_mc_mods(&mc_mods, mc_version, &body);
+
+    if is_supported {
+        utils::update_mods_to_support_a_mc_version_ui(&body, mc_version, &mut mc_mods).await;
+    }
 }
 
 pub(crate) fn list() {
@@ -61,6 +65,6 @@ pub(crate) async fn add(mc_version: &str, id_or_slug: &str) {
 
 pub(crate) async fn latest(mc_version: &str) {
     let mut mc_mods: MinecraftMods = Vec::new();
-    let body_text = utils::get_latest_version_of_multiple_project(mc_version, &mut mc_mods).await;
-    utils::check_latest_mc_mods(&body_text, mc_version, &mut mc_mods).await;
+    let body = utils::get_latest_version_of_multiple_project(mc_version, &mut mc_mods).await;
+    utils::check_latest_mc_mods(&body, mc_version, &mut mc_mods).await;
 }

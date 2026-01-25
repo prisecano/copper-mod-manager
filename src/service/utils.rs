@@ -3,12 +3,12 @@ use crate::{
     service::entities::{MinecraftMod, MinecraftModVersionUpdate, MinecraftMods},
 };
 use colored::Colorize;
+use futures::future::join_all;
 use rayon::prelude::*;
 use serde_json::Value;
+use std::fs::File;
 use std::{error::Error, fs, io::copy};
 use walkdir::{DirEntry, WalkDir};
-
-use std::fs::File;
 
 pub(crate) async fn get_latest_version_of_multiple_project(
     mc_version: &str,
@@ -31,20 +31,40 @@ pub(crate) async fn get_latest_version_of_multiple_project(
 
     println!("\r\n{}", "Searching mods on Modrinth...".bright_cyan());
 
-    let body_json =
+    let body =
         modrinth_api::latest_version_of_multiple_project(mods_hashes, loaders, game_versions)
             .await
             .unwrap_or_default();
 
     println!("\r\n{}", "Done!".bright_green());
-    body_json
+    body
 }
 
 pub(crate) async fn add_mc_mod(mc_mod: &MinecraftMod) -> Result<(), Box<dyn std::error::Error>> {
+    println!(
+        "{} {}...",
+        "Downloading mod".bright_cyan(),
+        mc_mod.file_name
+    );
+
     let response = download_mc_mod_by_url(&mc_mod.download_url).await?;
     copy_downloaded_mc_mod_to_file_by_file_name(&mc_mod.file_name, response).await?;
 
     Ok(())
+}
+
+pub(crate) async fn update_mc_mod_to_new_version(
+    mc_mod: &MinecraftModVersionUpdate,
+) -> Result<String, Box<dyn std::error::Error>> {
+    add_mc_mod(&mc_mod.minecraft_mod_new_version).await?;
+
+    println!(
+        "{} -> {}",
+        "update complete!".bright_green(),
+        mc_mod.minecraft_mod_new_version.file_name,
+    );
+
+    Ok(mc_mod.file_name.to_owned())
 }
 
 async fn copy_downloaded_mc_mod_to_file_by_file_name(
@@ -95,15 +115,19 @@ pub(crate) fn should_include(entry: &DirEntry) -> bool {
     }
 }
 
-pub(crate) fn check_support_mc_mods(mc_mods: MinecraftMods, mc_version: &str, body_json: &Value) {
+pub(crate) fn check_support_mc_mods(
+    mc_mods: &MinecraftMods,
+    mc_version: &str,
+    body: &Value,
+) -> bool {
     println!(
         "\r\n{} {}",
-        "Mod(s) support check for Minecraft version".bright_cyan(),
+        "Mod(s) support check for".bright_cyan(),
         mc_version.bright_blue()
     );
 
-    let Some(projects) = body_json.as_object() else {
-        return;
+    let Some(projects) = body.as_object() else {
+        return false;
     };
     let supported_hashes: Vec<&String> = projects.keys().collect();
 
@@ -133,18 +157,22 @@ pub(crate) fn check_support_mc_mods(mc_mods: MinecraftMods, mc_version: &str, bo
             total_supported_mods.to_string().bright_blue(),
             total_local_mods.to_string().bright_blue(),
             "supported...".bright_cyan()
-        )
-    } else {
-        println!(
-            "\r\n{} {}",
-            "All mods are supported for".bright_cyan(),
-            mc_version.bright_blue()
-        )
+        );
+
+        return false;
     }
+
+    println!(
+        "\r\n{} {}",
+        "All mods has versions that support".bright_cyan(),
+        mc_version.bright_blue()
+    );
+
+    true
 }
 
 pub(crate) async fn check_latest_mc_mods(
-    body_json: &Value,
+    body: &Value,
     mc_version: &str,
     current_mc_mods: &mut MinecraftMods,
 ) {
@@ -154,13 +182,13 @@ pub(crate) async fn check_latest_mc_mods(
         mc_version.bright_blue()
     );
 
-    let Some(projects) = body_json.as_object() else {
+    let Some(projects) = body.as_object() else {
         return;
     };
 
     let new = " NEW! ".on_red();
 
-    let mut mod_versions: Vec<MinecraftModVersionUpdate> = vec![];
+    let mut mc_mods_version_update: Vec<MinecraftModVersionUpdate> = vec![];
 
     projects.iter().for_each(|(current_hash, project)| {
         let file = project
@@ -199,43 +227,66 @@ pub(crate) async fn check_latest_mc_mods(
         current_mc_mod.changelog = changelog.to_owned();
         current_mc_mod.download_url = download_url.to_owned();
 
-        mod_versions.push(MinecraftModVersionUpdate {
+        mc_mods_version_update.push(MinecraftModVersionUpdate {
             file_name: old_file_name,
             minecraft_mod_new_version: current_mc_mod.clone(),
         });
     });
 
-    println!("\r\nUpdate [a]ll, [s]elect, [n]one?");
+    let n = mc_mods_version_update.len();
+    if n == 0 {
+        println!("\r\n{}", "Mods are up-to-date!".bright_green())
+    } else {
+        println!(
+            "\r\n{}",
+            format!("There are {n} mod(s) with newer version!").bright_yellow()
+        );
+        println!("\r\nUpdate [a]ll, [s]elect, [n]one?");
 
-    let mut update_choice = String::new();
-    std::io::stdin()
-        .read_line(&mut update_choice)
-        .unwrap_or_default();
+        let mut update_choice = String::new();
+        std::io::stdin()
+            .read_line(&mut update_choice)
+            .unwrap_or_default();
 
-    let new_mc_mods: &Vec<&MinecraftModVersionUpdate> = &mod_versions
-        .iter()
-        .filter(|mc_mod| !mc_mod.minecraft_mod_new_version.changelog.is_empty())
-        .collect();
-
-    match update_choice.trim().chars().next() {
-        Some('a') => println!("All"),
-        Some('s') => update_selective(new_mc_mods).await,
-        Some('n') => return,
-        _ => println!("Invalid input"),
+        match update_choice.trim().chars().next() {
+            Some('a') => update_all(&mc_mods_version_update).await,
+            Some('s') => update_selective(&mc_mods_version_update).await,
+            Some('n') => return,
+            _ => println!("Invalid input"),
+        }
     }
 }
 
-async fn update_selective(new_mc_mods: &Vec<&MinecraftModVersionUpdate>) {
-    for mc_mod in new_mc_mods {
+async fn update_all(new_mc_mods: &[MinecraftModVersionUpdate]) {
+    let futures = new_mc_mods
+        .iter()
+        .map(|new_mc_mod| update_mc_mod_to_new_version(&new_mc_mod));
+
+    join_all(futures)
+        .await
+        .iter()
+        .for_each(|result| match result {
+            Ok(old_file_name) => {
+                remove_mc_mod_by_mc_mod_file_name(&old_file_name)
+                    .unwrap_or_else(|err| println!("{}", err));
+            }
+            Err(_) => {
+                println!("\r\nDownload failed, Modrinth is probably down. Try again when's up.")
+            }
+        });
+}
+
+async fn update_selective(new_mc_mods: &[MinecraftModVersionUpdate]) {
+    for new_mc_mod in new_mc_mods {
         println!(
             "\r\n{} -> {}",
-            mc_mod.file_name.bright_blue(),
-            mc_mod.minecraft_mod_new_version.file_name.bright_blue()
+            new_mc_mod.file_name.bright_blue(),
+            new_mc_mod.minecraft_mod_new_version.file_name.bright_blue()
         );
         println!(
             "{}\r\n{}",
             "Changelog:".bright_cyan(),
-            mc_mod.minecraft_mod_new_version.changelog.on_black()
+            new_mc_mod.minecraft_mod_new_version.changelog.on_black()
         );
 
         loop {
@@ -247,24 +298,19 @@ async fn update_selective(new_mc_mods: &Vec<&MinecraftModVersionUpdate>) {
                 .unwrap_or_default();
 
             match mc_mod_choice.trim().chars().next() {
-                Some('y') => {
-                    println!("Downloading mod...");
-                    match add_mc_mod(&mc_mod.minecraft_mod_new_version).await {
-                        Ok(_) => {
-                            println!("\r\n{}", "Added mod!".bright_green());
-
-                            remove_mc_mod_by_mc_mod_file_name(&mc_mod.file_name)
-                                .unwrap_or_else(|err| println!("{}", err));
-                            break;
-                        }
-                        Err(_) => {
-                            println!(
-                                "Download failed, Modrinth is probably down. Try again when's up."
-                            );
-                            continue;
-                        }
+                Some('y') => match add_mc_mod(&new_mc_mod.minecraft_mod_new_version).await {
+                    Ok(_) => {
+                        remove_mc_mod_by_mc_mod_file_name(&new_mc_mod.file_name)
+                            .unwrap_or_else(|err| println!("{}", err));
+                        break;
                     }
-                }
+                    Err(_) => {
+                        println!(
+                            "\r\nDownload failed, Modrinth is probably down. Try again when's up."
+                        );
+                        continue;
+                    }
+                },
                 Some('n') => break,
                 _ => {
                     println!("Invalid input");
@@ -280,4 +326,69 @@ pub(crate) fn remove_mc_mod_by_mc_mod_file_name(
 ) -> Result<(), Box<dyn std::error::Error>> {
     fs::remove_file("mods/".to_string() + mc_mod_file_name)?;
     Ok(())
+}
+
+pub(crate) async fn update_mods_to_support_a_mc_version_ui(
+    body: &Value,
+    mc_version: &str,
+    current_mc_mods: &mut MinecraftMods,
+) {
+    loop {
+        println!("\r\nUpdate mod(s)? [y]es, [n]o");
+
+        let mut update_choice = String::new();
+        std::io::stdin()
+            .read_line(&mut update_choice)
+            .unwrap_or_default();
+
+        match update_choice.trim().chars().next() {
+            Some('y') => {
+                println!(
+                    "\r\n{} {}",
+                    "Update Mod(s) to support".bright_cyan(),
+                    mc_version.bright_blue()
+                );
+                update_mods_to_support_a_mc_version(body, current_mc_mods).await;
+
+                break;
+            }
+            Some('n') => break,
+            _ => println!("Invalid input"),
+        }
+    }
+}
+
+async fn update_mods_to_support_a_mc_version(body: &Value, current_mc_mods: &mut MinecraftMods) {
+    let Some(projects) = body.as_object() else {
+        return;
+    };
+
+    let mut mc_mods_version_update: Vec<MinecraftModVersionUpdate> = vec![];
+
+    projects.iter().for_each(|(current_hash, project)| {
+        let file = project
+            .get("files")
+            .and_then(Value::as_array)
+            .unwrap()
+            .first()
+            .unwrap_or_default();
+
+        let current_mc_mod = current_mc_mods
+            .iter_mut()
+            .find(|mc_mod| &mc_mod.file_hash == current_hash)
+            .unwrap();
+
+        let old_file_name = current_mc_mod.file_name.to_owned();
+        let new_file_name = file.get("filename").and_then(Value::as_str).unwrap();
+
+        current_mc_mod.file_name = new_file_name.to_owned();
+        current_mc_mod.download_url = file.get("url").and_then(Value::as_str).unwrap().to_owned();
+
+        mc_mods_version_update.push(MinecraftModVersionUpdate {
+            file_name: old_file_name,
+            minecraft_mod_new_version: current_mc_mod.clone(),
+        });
+    });
+
+    update_all(&mc_mods_version_update).await;
 }

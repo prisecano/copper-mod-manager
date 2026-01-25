@@ -22,28 +22,22 @@ pub enum Commands {
     /// Remove a mod
     #[command(arg_required_else_help = true)]
     Rm {
-        /// The Minecraft mod file to remove; Use command 'list' for lookup and copy-and-paste
+        /// The Minecraft mod file to remove; Use command 'list' for lookup and copy-and-paste the one you want to remove
         minecraft_file: String,
     },
     /// Show mods in mods directory
     #[command()]
     List,
-    /// Check if mods are up-to-date
+    /// Check if mods have a new version, and option to download them
     #[command(arg_required_else_help = true)]
     Latest {
         /// The Minecraft version to check if mods are up-to-date
         minecraft_version: String,
     },
-    /// Check if mods are supported for the next or older Minecraft version
+    /// Check if mods are supported for the next or older Minecraft version, and option to download them
     #[command(arg_required_else_help = true)]
     Support {
         /// The Minecraft version to check if mods are supported
-        minecraft_version: String,
-    },
-    /// Update mods to the latest version
-    #[command(arg_required_else_help = true)]
-    Update {
-        /// The Minecraft version to update mods
         minecraft_version: String,
     },
 }

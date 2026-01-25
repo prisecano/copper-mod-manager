@@ -7,6 +7,7 @@ edition = "2024"
 base16ct = "1.0.0"
 clap = { version = "4.5.54", features = ["derive"] }
 colored = "3.0.0"
+futures = "0.3.31"
 rayon = "1.11.0"
 reqwest = { version = "0.13.1", features = ["blocking", "json"] }
 serde = "1.0.228"
