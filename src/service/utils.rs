@@ -381,6 +381,10 @@ async fn update_mods_to_support_a_mc_version(body: &Value, current_mc_mods: &mut
         let old_file_name = current_mc_mod.file_name.to_owned();
         let new_file_name = file.get("filename").and_then(Value::as_str).unwrap();
 
+        if old_file_name == new_file_name {
+            return;
+        }
+
         current_mc_mod.file_name = new_file_name.to_owned();
         current_mc_mod.download_url = file.get("url").and_then(Value::as_str).unwrap().to_owned();
 
@@ -389,6 +393,14 @@ async fn update_mods_to_support_a_mc_version(body: &Value, current_mc_mods: &mut
             minecraft_mod_new_version: current_mc_mod.clone(),
         });
     });
+
+    if mc_mods_version_update.is_empty() {
+        println!(
+            "\r\n{}",
+            "Mod(s) already has the correct version!".bright_green()
+        );
+        return;
+    }
 
     update_all(&mc_mods_version_update).await;
 }
