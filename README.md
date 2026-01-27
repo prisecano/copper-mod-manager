@@ -1,7 +1,5 @@
 # Copper Mod Manager
 
-A high-performance, zero Config-As-Code, Minecraft Mod Manager CLI tool, to manage mods from Modrinth for Fabric.
-
 ```sh
 Tool to manage Minecraft mods for Fabric + Modrinth
 
@@ -18,6 +16,7 @@ Commands:
 Options:
   -h, --help  Print help
 ```
+**A high-performance, zero Config-As-Code, Minecraft Mod Manager CLI tool, to manage mods from Modrinth for Fabric.**
 
 Let's break the sentence down:
 
