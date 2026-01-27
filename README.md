@@ -68,8 +68,8 @@ chmod +x cmm
 
 1. Fork this project.
 2. Create relevant branch:
-For fixes: `dev/fix-<YOUR-FIX-BRANCH_NAME>`
-For features: `dev/feature-<YOUR-FEATURE-BRANCH_NAME>`
+- **Fixes**: `dev/fix-<YOUR-FIX-BRANCH_NAME>`
+- **Features**: `dev/feature-<YOUR-FEATURE-BRANCH_NAME>`
 3. After you finished development, create a PR (Pull Request) to this dev branch.
 4. Discuss and push changes if needed.
 5. Lead developer happy? Lead developer will merge your PR into dev.
