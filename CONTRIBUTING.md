@@ -32,14 +32,13 @@ For changes, make sure that you:
 - Check your changes for grammar, and spelling.
 - If there are any failing checks in your pull request, troubleshoot them until they're all passing.
 
-
-### Branch strategy
+### GitHub-flow / feature branching
 
 1. For a new feature, always create an Issue first to discuss it before working on it.
 2. Fork this project.
 3. Create relevant branch:
-- **Fixes**: dev/fix-<YOUR-FIX-BRANCH_NAME>
-- **Features**: dev/feature-<YOUR-FEATURE-BRANCH_NAME>
-5. After you finished development, create a PR (Pull Request) to this dev branch.
-6. Discuss and push changes if needed.
-7. Lead developer happy? Lead developer will merge your PR into dev.
+- **Fixes**: `fix/<YOUR-FIX-BRANCH_NAME>`
+- **Features**: `feature/<YOUR-FEATURE-BRANCH_NAME>`
+4. While starting or at the start of development, create a PR (Pull Request) to this main branch.
+5. Discuss and push changes if needed.
+6. Done and Lead developer happy? Lead developer will merge your PR into main.
