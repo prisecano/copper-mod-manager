@@ -1,9 +1,9 @@
 use serde_json::Value;
 
+use crate::entity::MinecraftMod;
 use crate::modrinth_api;
-use crate::service::entities::MinecraftMod;
 
-pub(crate) async fn lists_projects_versions_to_new_mc_mod(
+pub(crate) async fn lists_projects_versions_to_new_mc_mod_download_url(
     mc_version: &str,
     id_or_slug: &str,
     mc_mod: &mut MinecraftMod,

@@ -4,8 +4,6 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::PathBuf;
 
-pub type MinecraftMods = Vec<MinecraftMod>;
-
 pub(crate) struct MinecraftModVersionUpdate {
     pub(crate) file_name: String,
     pub(crate) minecraft_mod_new_version: MinecraftMod,

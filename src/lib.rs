@@ -4,8 +4,12 @@ use cli::{Cli, Commands};
 
 mod adapter;
 mod cli;
+mod contract;
+mod entity;
 mod modrinth_api;
 mod service;
+mod utils;
+mod view;
 
 pub async fn run() {
     let args = Cli::parse();
@@ -14,10 +18,16 @@ pub async fn run() {
         Commands::Add {
             minecraft_version,
             id_or_slug,
-        } => service::add(&minecraft_version, &id_or_slug).await,
-        Commands::Rm { minecraft_file } => service::rm(&minecraft_file),
-        Commands::List => service::list(),
-        Commands::Latest { minecraft_version } => service::latest(&minecraft_version).await,
-        Commands::Support { minecraft_version } => service::support(&minecraft_version).await,
+        } => view::add::add_view(&minecraft_version, &id_or_slug).await,
+        Commands::Rm {
+            minecraft_file: minecraft_mod_file_name,
+        } => view::rm::rm_view(&minecraft_mod_file_name),
+        Commands::List => view::list::list_view(),
+        Commands::Latest { minecraft_version } => {
+            view::latest::latest_view(&minecraft_version).await
+        }
+        Commands::Support { minecraft_version } => {
+            view::support::support_view(&minecraft_version).await
+        }
     }
 }
