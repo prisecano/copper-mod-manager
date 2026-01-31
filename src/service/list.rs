@@ -1,4 +1,6 @@
-use crate::{contract::list::ListMinecraftModsFileName, service::MinecraftModsService, utils};
+use crate::{
+    domain::contract::list::ListMinecraftModsFileName, service::MinecraftModsService, utils,
+};
 
 impl ListMinecraftModsFileName for MinecraftModsService {
     fn list(&mut self) {

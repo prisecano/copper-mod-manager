@@ -1,4 +1,6 @@
-use crate::{contract::support::SupportMinecraftMods, service::MinecraftModsService, utils};
+use crate::{
+    domain::contract::support::SupportMinecraftMods, service::MinecraftModsService, utils,
+};
 
 impl SupportMinecraftMods for MinecraftModsService {
     async fn support(&mut self, mc_version: &str) {

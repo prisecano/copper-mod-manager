@@ -1,7 +1,7 @@
 use colored::Colorize;
 
 use crate::{
-    contract::{list::ListMinecraftModsFileName, rm::RemoveMinecraftMod},
+    domain::contract::{list::ListMinecraftModsFileName, rm::RemoveMinecraftMod},
     service::MinecraftModsService,
 };
 

@@ -1,4 +1,4 @@
-use crate::entity::MinecraftMod;
+use crate::domain::entities::minecraft_mod::MinecraftMod;
 
 pub(crate) mod add;
 pub(crate) mod latest;

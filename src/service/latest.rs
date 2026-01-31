@@ -1,4 +1,4 @@
-use crate::{contract::latest::LatestMinecraftMods, service::MinecraftModsService};
+use crate::{domain::contract::latest::LatestMinecraftMods, service::MinecraftModsService};
 
 use super::super::utils;
 

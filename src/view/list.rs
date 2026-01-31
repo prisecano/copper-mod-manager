@@ -1,6 +1,6 @@
 use colored::Colorize;
 
-use crate::{contract::list::ListMinecraftModsFileName, service::MinecraftModsService};
+use crate::{domain::contract::list::ListMinecraftModsFileName, service::MinecraftModsService};
 
 pub(crate) fn list_view() {
     println!(

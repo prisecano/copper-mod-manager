@@ -1,8 +1,8 @@
 use colored::Colorize;
 
 use crate::{
-    adapter, contract::add::AddMinecraftMod, entity::MinecraftMod, service::MinecraftModsService,
-    utils,
+    adapter, domain::contract::add::AddMinecraftMod, domain::entities::minecraft_mod::MinecraftMod,
+    service::MinecraftModsService, utils,
 };
 
 impl AddMinecraftMod for MinecraftModsService {

@@ -1,6 +1,6 @@
 use colored::Colorize;
 
-use crate::{contract::support::SupportMinecraftMods, service::MinecraftModsService};
+use crate::{domain::contract::support::SupportMinecraftMods, service::MinecraftModsService};
 
 pub(crate) async fn support_view(mc_version: &str) {
     println!(

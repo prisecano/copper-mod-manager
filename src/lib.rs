@@ -4,9 +4,8 @@ use cli::{Cli, Commands};
 
 mod adapter;
 mod cli;
-mod contract;
-mod entity;
-mod modrinth_api;
+mod domain;
+mod infrastructure;
 mod service;
 mod utils;
 mod view;
