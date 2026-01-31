@@ -1,18 +1,21 @@
 use crate::{
-    modrinth_api,
-    service::entities::{MinecraftMod, MinecraftModVersionUpdate, MinecraftMods},
+    domain::entities::minecraft_mod::{MinecraftMod, MinecraftModVersionUpdate},
+    infrastructure::{
+        file_system::{copy_downloaded_mc_mod_to_file_by_file_name, remove_mc_mod_by_file_name},
+        modrinth_api,
+    },
+    service::MinecraftModsService,
 };
 use colored::Colorize;
 use futures::future::join_all;
 use rayon::prelude::*;
 use serde_json::Value;
-use std::fs::File;
-use std::{error::Error, fs, io::copy};
+use std::error::Error;
 use walkdir::{DirEntry, WalkDir};
 
 pub(crate) async fn get_latest_version_of_multiple_project(
     mc_version: &str,
-    mc_mods: &mut MinecraftMods,
+    mc_mods_service: &mut MinecraftModsService,
 ) -> Value {
     let game_versions = &vec![mc_version];
     let loaders = &vec!["fabric"];
@@ -21,10 +24,11 @@ pub(crate) async fn get_latest_version_of_multiple_project(
         "\r\n{}",
         "Obtaining hashes for Modrinth lookup:".bright_cyan()
     );
-    get_mod_file_paths(mc_mods);
-    parallise_hashing_mc_mods(mc_mods);
+    get_mod_file_paths(mc_mods_service);
+    parallise_hashing_mc_mods(mc_mods_service);
 
-    let mods_hashes: &Vec<&str> = &mc_mods
+    let mods_hashes: &Vec<&str> = &mc_mods_service
+        .mc_mods
         .iter()
         .map(|mc_mod| mc_mod.file_hash.as_str())
         .collect();
@@ -67,18 +71,6 @@ pub(crate) async fn update_mc_mod_to_new_version(
     Ok(mc_mod.file_name.to_owned())
 }
 
-async fn copy_downloaded_mc_mod_to_file_by_file_name(
-    file_name: &str,
-    mut response: reqwest::Response,
-) -> Result<(), Box<dyn Error + 'static>> {
-    let mut dest = File::create(format!("mods/{file_name}")).unwrap();
-    while let Some(chunk) = response.chunk().await? {
-        copy(&mut chunk.as_ref(), &mut dest).unwrap();
-    }
-
-    Ok(())
-}
-
 async fn download_mc_mod_by_url(
     file_download_url: &str,
 ) -> Result<reqwest::Response, Box<dyn Error + 'static>> {
@@ -86,20 +78,23 @@ async fn download_mc_mod_by_url(
     Ok(response)
 }
 
-pub(crate) fn get_mod_file_paths(mc_mods: &mut MinecraftMods) {
+pub(crate) fn get_mod_file_paths(mc_mods_service: &mut MinecraftModsService) {
     for entry in WalkDir::new("mods")
         .into_iter()
         .filter_entry(|e| should_include(e))
         .filter_map(|e| e.ok())
     {
         if entry.file_type().is_file() {
-            mc_mods.push(MinecraftMod::new_mc_mod_by_path(entry.into_path()));
+            mc_mods_service
+                .mc_mods
+                .push(MinecraftMod::new_mc_mod_by_path(entry.into_path()));
         }
     }
 }
 
-pub(crate) fn parallise_hashing_mc_mods(mc_mods: &mut MinecraftMods) {
-    mc_mods
+pub(crate) fn parallise_hashing_mc_mods(mc_mods_service: &mut MinecraftModsService) {
+    mc_mods_service
+        .mc_mods
         .par_iter_mut()
         .for_each(|mc_mod| mc_mod.hash_file_sha1());
 }
@@ -116,7 +111,7 @@ pub(crate) fn should_include(entry: &DirEntry) -> bool {
 }
 
 pub(crate) fn check_support_mc_mods(
-    mc_mods: &MinecraftMods,
+    mc_mods_service: &MinecraftModsService,
     mc_version: &str,
     body: &Value,
 ) -> bool {
@@ -134,7 +129,7 @@ pub(crate) fn check_support_mc_mods(
     let yes = "O".green();
     let no = "X".red();
 
-    mc_mods.iter().for_each(|mc_mod| {
+    mc_mods_service.mc_mods.iter().for_each(|mc_mod| {
         let is_available = match supported_hashes.contains(&&mc_mod.file_hash) {
             true => &yes,
             false => &no,
@@ -147,7 +142,7 @@ pub(crate) fn check_support_mc_mods(
         )
     });
 
-    let total_local_mods = mc_mods.len();
+    let total_local_mods = mc_mods_service.mc_mods.len();
     let total_supported_mods = projects.len();
 
     if total_local_mods != total_supported_mods {
@@ -174,7 +169,7 @@ pub(crate) fn check_support_mc_mods(
 pub(crate) async fn check_latest_mc_mods(
     body: &Value,
     mc_version: &str,
-    current_mc_mods: &mut MinecraftMods,
+    current_mc_mods_service: &mut MinecraftModsService,
 ) {
     println!(
         "\r\n{} {}",
@@ -204,7 +199,8 @@ pub(crate) async fn check_latest_mc_mods(
             return;
         }
 
-        let current_mc_mod = current_mc_mods
+        let current_mc_mod = current_mc_mods_service
+            .mc_mods
             .iter_mut()
             .find(|mc_mod| &mc_mod.file_hash == current_hash)
             .unwrap();
@@ -267,7 +263,7 @@ async fn update_all(new_mc_mods: &[MinecraftModVersionUpdate]) {
         .iter()
         .for_each(|result| match result {
             Ok(old_file_name) => {
-                remove_mc_mod_by_mc_mod_file_name(&old_file_name)
+                remove_mc_mod_by_file_name(&old_file_name)
                     .unwrap_or_else(|err| println!("{}", err));
             }
             Err(_) => {
@@ -300,7 +296,7 @@ async fn update_selective(new_mc_mods: &[MinecraftModVersionUpdate]) {
             match mc_mod_choice.trim().chars().next() {
                 Some('y') => match add_mc_mod(&new_mc_mod.minecraft_mod_new_version).await {
                     Ok(_) => {
-                        remove_mc_mod_by_mc_mod_file_name(&new_mc_mod.file_name)
+                        remove_mc_mod_by_file_name(&new_mc_mod.file_name)
                             .unwrap_or_else(|err| println!("{}", err));
                         break;
                     }
@@ -321,17 +317,10 @@ async fn update_selective(new_mc_mods: &[MinecraftModVersionUpdate]) {
     }
 }
 
-pub(crate) fn remove_mc_mod_by_mc_mod_file_name(
-    mc_mod_file_name: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
-    fs::remove_file("mods/".to_string() + mc_mod_file_name)?;
-    Ok(())
-}
-
 pub(crate) async fn update_mods_to_support_a_mc_version_ui(
     body: &Value,
     mc_version: &str,
-    current_mc_mods: &mut MinecraftMods,
+    current_mc_mods: &mut MinecraftModsService,
 ) {
     loop {
         println!("\r\nUpdate mod(s)? [y]es, [n]o");
@@ -358,7 +347,10 @@ pub(crate) async fn update_mods_to_support_a_mc_version_ui(
     }
 }
 
-async fn update_mods_to_support_a_mc_version(body: &Value, current_mc_mods: &mut MinecraftMods) {
+async fn update_mods_to_support_a_mc_version(
+    body: &Value,
+    current_mc_mods_service: &mut MinecraftModsService,
+) {
     let Some(projects) = body.as_object() else {
         return;
     };
@@ -373,7 +365,8 @@ async fn update_mods_to_support_a_mc_version(body: &Value, current_mc_mods: &mut
             .first()
             .unwrap_or_default();
 
-        let current_mc_mod = current_mc_mods
+        let current_mc_mod = current_mc_mods_service
+            .mc_mods
             .iter_mut()
             .find(|mc_mod| &mc_mod.file_hash == current_hash)
             .unwrap();
