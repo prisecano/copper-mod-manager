@@ -1,19 +1,13 @@
-use crate::domain::entities::minecraft_mod::MinecraftMod;
+use crate::domain::contract::file_system::IFileSystem;
 
-pub(crate) mod add;
-pub(crate) mod latest;
-pub(crate) mod list;
-pub(crate) mod rm;
-pub(crate) mod support;
+pub(crate) mod minecraft_mods;
 
-pub(crate) struct MinecraftModsService {
-    pub(crate) mc_mods: Vec<MinecraftMod>,
+pub(crate) struct MinecraftModsService<FileSystem: IFileSystem> {
+    file_system: FileSystem,
 }
 
-impl Default for MinecraftModsService {
-    fn default() -> Self {
-        Self {
-            mc_mods: Default::default(),
-        }
+impl<FileSystem: IFileSystem> MinecraftModsService<FileSystem> {
+    pub(crate) fn new(file_system: FileSystem) -> Self {
+        Self { file_system }
     }
 }

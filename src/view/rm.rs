@@ -1,8 +1,8 @@
 use colored::Colorize;
 
 use crate::{
-    domain::contract::{list::ListMinecraftModsFileName, rm::RemoveMinecraftMod},
-    service::MinecraftModsService,
+    domain::contract::minecraft_mods_service::IMinecraftModsService,
+    infrastructure::InMemFileSystem, service::MinecraftModsService,
 };
 
 pub(crate) fn rm_view(mc_mod_file_name: &str) {
@@ -12,7 +12,7 @@ pub(crate) fn rm_view(mc_mod_file_name: &str) {
         mc_mod_file_name.bright_blue()
     );
 
-    let mut mc_mods_service = MinecraftModsService::default();
+    let mut mc_mods_service = MinecraftModsService::new(InMemFileSystem {});
 
     match mc_mods_service.rm(mc_mod_file_name) {
         Ok(_) => {

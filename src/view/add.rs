@@ -1,6 +1,9 @@
 use colored::Colorize;
 
-use crate::{domain::contract::add::AddMinecraftMod, service::MinecraftModsService};
+use crate::{
+    domain::contract::minecraft_mods_service::IMinecraftModsService,
+    infrastructure::InMemFileSystem, service::MinecraftModsService,
+};
 
 pub(crate) async fn add_view(mc_version: &str, id_or_slug: &str) {
     println!(
@@ -9,6 +12,6 @@ pub(crate) async fn add_view(mc_version: &str, id_or_slug: &str) {
         "on Modrinth...".bright_cyan()
     );
 
-    let mut mc_mods_service = MinecraftModsService::default();
+    let mut mc_mods_service = MinecraftModsService::new(InMemFileSystem {});
     mc_mods_service.add(mc_version, id_or_slug).await;
 }
