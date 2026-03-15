@@ -1,12 +1,8 @@
-use colored::Colorize;
-use sha1::{Digest, Sha1};
-use std::fs::File;
-use std::io::{BufReader, Read};
 use std::path::PathBuf;
 
-pub type MinecraftMods = Vec<MinecraftMod>;
+pub(crate) mod rules;
 
-pub(crate) struct MinecraftModVersionUpdate {
+pub(crate) struct MinecraftModVersionDiff {
     pub(crate) file_name: String,
     pub(crate) minecraft_mod_new_version: MinecraftMod,
 }
@@ -21,16 +17,6 @@ pub(crate) struct MinecraftMod {
 }
 
 impl MinecraftMod {
-    pub fn new() -> Self {
-        Self {
-            file_name: String::new(),
-            file_path: PathBuf::new(),
-            file_hash: String::new(),
-            changelog: String::new(),
-            download_url: String::new(),
-        }
-    }
-
     pub fn new_mc_mod_by_path(file_path: PathBuf) -> Self {
         Self {
             file_name: String::from(
@@ -46,31 +32,17 @@ impl MinecraftMod {
             download_url: String::new(),
         }
     }
+}
 
-    pub fn hash_file_sha1(&mut self) {
-        let file = File::open(self.file_path.as_path()).unwrap();
-        let mut reader = BufReader::new(file);
-
-        let mut hasher = Sha1::new();
-
-        let mut buffer = [0u8; 8192];
-        loop {
-            let count = reader.read(&mut buffer).unwrap_or_default();
-            if count == 0 {
-                break;
-            }
-
-            hasher.update(&buffer[..count]);
+impl Default for MinecraftMod {
+    fn default() -> Self {
+        Self {
+            file_name: Default::default(),
+            file_path: Default::default(),
+            file_hash: Default::default(),
+            changelog: Default::default(),
+            download_url: Default::default(),
         }
-
-        let hash = hasher.finalize();
-
-        let mut buffer: [u8; 40] = [0; 40];
-
-        self.file_hash =
-            String::from(base16ct::lower::encode_str(&hash, &mut buffer).unwrap_or_default());
-
-        println!("{} -> {}", self.file_name, self.file_hash.yellow());
     }
 }
 

@@ -2,9 +2,10 @@ use clap::Parser;
 
 use cli::{Cli, Commands};
 
-mod adapter;
 mod cli;
-mod modrinth_api;
+mod domain;
+mod infrastructure;
+mod presentation;
 mod service;
 
 pub async fn run() {
@@ -14,10 +15,16 @@ pub async fn run() {
         Commands::Add {
             minecraft_version,
             id_or_slug,
-        } => service::add(&minecraft_version, &id_or_slug).await,
-        Commands::Rm { minecraft_file } => service::rm(&minecraft_file),
-        Commands::List => service::list(),
-        Commands::Latest { minecraft_version } => service::latest(&minecraft_version).await,
-        Commands::Support { minecraft_version } => service::support(&minecraft_version).await,
+        } => service::minecraft_mods::add(&minecraft_version, &id_or_slug).await,
+        Commands::Rm {
+            minecraft_file: minecraft_mod_file_name,
+        } => service::minecraft_mods::rm(&minecraft_mod_file_name),
+        Commands::List => service::minecraft_mods::list(),
+        Commands::Latest { minecraft_version } => {
+            service::minecraft_mods::latest(&minecraft_version).await
+        }
+        Commands::Support { minecraft_version } => {
+            service::minecraft_mods::support(&minecraft_version).await
+        }
     }
 }
