@@ -1,2 +1,1 @@
-pub(crate) mod contract;
-pub(crate) mod entities;
+pub(crate) mod minecraft_mod;

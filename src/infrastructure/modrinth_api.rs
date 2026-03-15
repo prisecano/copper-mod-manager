@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use serde_json::Value;
 
+pub(crate) mod adapter;
+
 const MODRINTH_URL: &str = "https://api.modrinth.com/v2/";
 
 pub(crate) async fn latest_version_of_multiple_project(

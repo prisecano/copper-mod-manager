@@ -1,9 +1,9 @@
 use colored::Colorize;
 use serde_json::Value;
 
-use crate::{domain::entities::minecraft_mod::MinecraftMod, infrastructure::modrinth_api};
+use crate::domain::minecraft_mod::MinecraftMod;
 
-pub(crate) async fn lists_projects_versions_to_new_mc_mod_download_url(
+pub(crate) async fn lists_projects_versions_to_mc_mod_download_url(
     mc_version: &str,
     id_or_slug: &str,
 ) -> MinecraftMod {
@@ -11,7 +11,7 @@ pub(crate) async fn lists_projects_versions_to_new_mc_mod_download_url(
     let game_versions = &vec![mc_version];
     let loaders = &vec!["fabric"];
 
-    let body = modrinth_api::lists_projects_versions(ids_or_slugs, loaders, game_versions)
+    let body = super::lists_projects_versions(ids_or_slugs, loaders, game_versions)
         .await
         .unwrap_or_default();
 
@@ -43,10 +43,9 @@ pub(crate) async fn get_latest_version_of_multiple_project(
 
     println!("\r\n{}", "Searching mods on Modrinth...".bright_cyan());
 
-    let body =
-        modrinth_api::latest_version_of_multiple_project(mods_hashes, loaders, game_versions)
-            .await
-            .unwrap_or_default();
+    let body = super::latest_version_of_multiple_project(mods_hashes, loaders, game_versions)
+        .await
+        .unwrap_or_default();
 
     println!("\r\n{}", "Done!".bright_green());
     body

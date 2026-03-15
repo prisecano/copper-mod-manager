@@ -3,35 +3,26 @@ use std::{error::Error, fs, io::copy};
 
 use walkdir::{DirEntry, WalkDir};
 
-use crate::domain::contract::file_system::IFileSystem;
-use crate::domain::entities::minecraft_mod::MinecraftMod;
-use crate::infrastructure::FileSystem;
+use crate::domain::minecraft_mod::MinecraftMod;
 
-impl IFileSystem for FileSystem {
-    fn hash_file(&self) -> String {
-        todo!()
-    }
+pub(crate) mod adapter;
 
-    fn remove_mc_mod_by_file_name(
-        &self,
-        mc_mod_file_name: &str,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        fs::remove_file("mods/".to_string() + mc_mod_file_name)?;
-        Ok(())
-    }
+pub(crate) fn remove_mc_mod_by_file_name(mc_mod_file_name: &str) -> Result<(), Box<dyn Error>> {
+    fs::remove_file("mods/".to_string() + mc_mod_file_name)?;
+    Ok(())
+}
 
-    fn get_mod_file_paths(&self) -> Vec<MinecraftMod> {
-        let mc_mods_in_mods_dir = WalkDir::new("mods")
-            .into_iter()
-            .filter_entry(|e| should_include(e))
-            .filter_map(|e| e.ok());
+pub(crate) fn get_all_mc_mod_file_paths() -> Vec<MinecraftMod> {
+    let mc_mods_in_mods_dir = WalkDir::new("mods")
+        .into_iter()
+        .filter_entry(|e| should_include(e))
+        .filter_map(|e| e.ok());
 
-        mc_mods_in_mods_dir
-            .into_iter()
-            .filter(|entry| entry.file_type().is_file())
-            .map(|entry| MinecraftMod::new_mc_mod_by_path(entry.into_path()))
-            .collect()
-    }
+    mc_mods_in_mods_dir
+        .into_iter()
+        .filter(|entry| entry.file_type().is_file())
+        .map(|entry| MinecraftMod::new_mc_mod_by_path(entry.into_path()))
+        .collect()
 }
 
 pub(crate) async fn copy_downloaded_mc_mod_to_file_by_file_name(
@@ -46,7 +37,7 @@ pub(crate) async fn copy_downloaded_mc_mod_to_file_by_file_name(
     Ok(())
 }
 
-pub(crate) fn should_include(entry: &DirEntry) -> bool {
+fn should_include(entry: &DirEntry) -> bool {
     if entry.file_type().is_dir() {
         return true;
     }

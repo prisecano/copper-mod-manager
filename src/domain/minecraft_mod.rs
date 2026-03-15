@@ -1,8 +1,6 @@
-use colored::Colorize;
-use sha1::{Digest, Sha1};
-use std::fs::File;
-use std::io::{BufReader, Read};
 use std::path::PathBuf;
+
+pub(crate) mod rules;
 
 pub(crate) struct MinecraftModVersionDiff {
     pub(crate) file_name: String,
@@ -33,32 +31,6 @@ impl MinecraftMod {
             changelog: String::new(),
             download_url: String::new(),
         }
-    }
-
-    pub fn hash_file_sha1(&mut self) {
-        let file = File::open(self.file_path.as_path()).unwrap();
-        let mut reader = BufReader::new(file);
-
-        let mut hasher = Sha1::new();
-
-        let mut buffer = [0u8; 8192];
-        loop {
-            let count = reader.read(&mut buffer).unwrap_or_default();
-            if count == 0 {
-                break;
-            }
-
-            hasher.update(&buffer[..count]);
-        }
-
-        let hash = hasher.finalize();
-
-        let mut buffer: [u8; 40] = [0; 40];
-
-        self.file_hash =
-            String::from(base16ct::lower::encode_str(&hash, &mut buffer).unwrap_or_default());
-
-        println!("{} -> {}", self.file_name, self.file_hash.yellow());
     }
 }
 
