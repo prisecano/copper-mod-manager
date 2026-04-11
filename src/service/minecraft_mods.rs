@@ -121,8 +121,9 @@ async fn update_select(mc_mods_version_diff: &Vec<MinecraftModVersionDiff>) {
         loop {
             match view::update::select_choice() {
                 Some('y') => {
-                    if let Ok(_) = web_api::download_mc_mod_by_url(
-                        &mc_mod_version_diff.minecraft_mod_new_version.download_url,
+                    if let Ok(_) = download_and_save_mc_mod(
+                        &mc_mod_version_diff.file_name,
+                        &mc_mod_version_diff.minecraft_mod_new_version,
                     )
                     .await
                     {
