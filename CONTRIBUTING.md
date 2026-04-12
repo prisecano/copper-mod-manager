@@ -2,7 +2,7 @@
 **You can contribute to Copper Mod Manager in several ways.**
 
 ---
-Copper Mod Manager is open source. Anyone can contribute to the CLI-tool in the public `copper-mod-manager` repository: <https://github.com/github/copper-mod-manager>.
+Copper Mod Manager is open source. Anyone can contribute to the CLI-tool in the public `copper-mod-manager` repository: <https://github.com/prisecano/copper-mod-manager>.
 
 ## Philosophy
 This project is designed that is:
