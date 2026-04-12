@@ -16,7 +16,7 @@ Commands:
 Options:
   -h, --help  Print help
 ```
-**A high-performance, zero Config-As-Code, Minecraft Mod Manager CLI tool, to manage mods from Modrinth for Fabric.**
+**A high-performance, zero file generation, Minecraft Mod Manager CLI tool, to manage mods from Modrinth for Fabric.**
 
 Let's break the sentence down:
 
@@ -24,9 +24,9 @@ Let's break the sentence down:
 
 Made with Rust, applied concurrency
 
-> **zero Config-As-Code**
+> **zero file generation**
 
-This tool does **NOT** create any config files. Making the root of your Minecraft directory readable, and maintainable.
+This tool does **NOT** create any files to manage mc mods. Making the root of your Minecraft directory clean, and maintainable.
 
 > **CLI tool**
 
@@ -41,8 +41,16 @@ This tool only manages mods that come from Modrinth and is only compatible for t
 ### Installation & usage
 
 1. On Linux, and Windows you can install copper-mod-manager via the [releases](https://github.com/prisecano/copper-mod-manager/releases) page.
-2. Put `cmm` or `cmm.exe` in the root directory of your minecraft instance/server.
-3. Give permission to the file `cmm` or `cmm.exe` to be able to execute it, by typing:
+Options are:
+  - Windows x86_64
+  - Linux x86_64
+  - Linux Aarch64/Arm64
+3. Put exe/archive in the root directory of your minecraft instance/server.
+4. If the file is an archive (tar.xz) extract it by typing:
+```sh
+tar -xf <ARCHIVE NAME>
+```
+5. Give permission to the file `cmm` or `cmm.exe` to be able to execute it, by typing:
 
 **Linux**
 ```sh
@@ -67,11 +75,7 @@ chmod +x cmm
 
 1. For a new feature, always create an Issue first to discuss it before working on it.
 2. Fork this project.
-3. Create relevant branch:
-- **Fixes**: `fix/<YOUR-FIX-BRANCH_NAME>`
-- **Features**: `feature/<YOUR-FEATURE-BRANCH_NAME>`
+3. Create branch.
 4. While starting or at the start of development, create a PR (Pull Request) to this main branch.
 5. Discuss and push changes if needed.
 6. Done and Lead developer happy? Lead developer will merge your PR into main.
-
-**WIP**
