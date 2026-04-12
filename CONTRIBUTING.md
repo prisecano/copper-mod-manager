@@ -36,9 +36,7 @@ For changes, make sure that you:
 
 1. For a new feature, always create an Issue first to discuss it before working on it.
 2. Fork this project.
-3. Create relevant branch:
-- **Fixes**: `fix/<YOUR-FIX-BRANCH_NAME>`
-- **Features**: `feature/<YOUR-FEATURE-BRANCH_NAME>`
+3. Create branch.
 4. While starting or at the start of development, create a PR (Pull Request) to this main branch.
 5. Discuss and push changes if needed.
 6. Done and Lead developer happy? Lead developer will merge your PR into main.
